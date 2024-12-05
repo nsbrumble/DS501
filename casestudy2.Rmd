@@ -1,0 +1,325 @@
+---
+title: "Case Study 2"
+author: "Nathan Brumble"
+date: "2024-10-13"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+# Problem 1: Importing MovieLens Data and Merging it into a Single Dataframe
+
+```{r}
+# Importing data
+movielens = 'https://raw.githubusercontent.com/dnchari/DS501_MovieLens/master/Results/unifiedMLDataMulti.csv'
+mlData = read.csv(movielens)
+```
+
+## How many movies have an average rating of over 4.5 overall?
+
+To answer this, the aggregate() function was used to gather all of the unique movies and calculate the average rating for each movie. Then, the movies with an average rating of over 4.5 were filtered out and the number of rows for this was calculated.
+
+```{r}
+# Finds average rating for each movie
+average_ratings <- aggregate(rating ~ movie_title, data = mlData, FUN = mean)
+
+# Finds movies with ratings over 4.5
+filtered_movies_45 <- average_ratings[average_ratings$rating > 4.5, ]
+
+# Finds number of movies with ratings over 4.5
+num_over_45 <- nrow(filtered_movies_45)
+cat('Number of movies with an average rating over 4.5 = ',num_over_45)
+```
+
+## How many movies have an average rating of 4.5 among men? Women?
+
+First, a subset of data will be created that includes only men. From there, a similar process will be followed from the previous question. The average rating for each movie will be found using the aggregate() function and those over 4.5 will be filtered out.
+
+```{r}
+# Creating subset of data to represent men and women separately
+mlData_M <- subset(mlData , gender == 'M')
+mlData_W <- subset(mlData , gender == 'F')
+
+# Calculating the average for each movie among men and women
+average_ratings_M <- aggregate(rating ~ movie_title, data = mlData_M, FUN = mean)
+average_ratings_W <- aggregate(rating ~ movie_title, data = mlData_W, FUN = mean)
+
+# Filtering movies with average rating of over 4.5
+filtered_movies_45_M <- average_ratings_M[average_ratings_M$rating > 4.5, ]
+filtered_movies_45_W <- average_ratings_W[average_ratings_W$rating > 4.5, ]
+
+# Finds number of movies with ratings over 4.5 for men and women
+num_over_45_M <- nrow(filtered_movies_45_M)
+num_over_45_W <- nrow(filtered_movies_45_W)
+
+cat('Number of movies with an average rating over 4.5 for men = ',num_over_45_M, '\n')
+cat('Number of movies with an average rating over 4.5 for women = ',num_over_45_W)
+```
+## How many movies have a median rating over 4.5 for men over 30? Women over 30?
+
+Following a similar method to the previous questions, a subset of data is created that encompasses men over the age of 30 and one to encompass women over 30. This time, when using the aggregate() function, the function to be used will be median. From there, movies with ratings over 4.5 can be filtered out and the question can be answered.
+
+```{r}
+# Create a dataframe for men and women over 30
+mlData_M30 <- subset(mlData , gender == 'M' & age > 30)
+mlData_W30 <- subset(mlData , gender == 'F' & age > 30)
+
+# Calculating the median rating for each movie among men and women
+average_ratings_M30 <- aggregate(rating ~ movie_title, data = mlData_M30, FUN = median)
+average_ratings_W30 <- aggregate(rating ~ movie_title, data = mlData_W30, FUN = median)
+
+# Filtering movies with median rating over 4.5
+filtered_movies_45_M30 <- average_ratings_M30[average_ratings_M30$rating > 4.5, ]
+filtered_movies_45_W30 <- average_ratings_W30[average_ratings_W30$rating > 4.5, ]
+
+# Finds number of movies with ratings over 4.5 for men and women
+num_over_45_M30 <- nrow(filtered_movies_45_M30)
+num_over_45_W30 <- nrow(filtered_movies_45_W30)
+
+cat('Number of movies with an median rating over 4.5 for men over 30 = ',num_over_45_M30, '\n')
+cat('Number of movies with an median rating over 4.5 for women over 30 = ',num_over_45_W30)
+```
+## What are the most popular movies?
+
+In this context, I am defining 'popular' as movies with the most ratings. I argue that it does not matter whether these movies are rated high or low; it matters if the volume of their ratings are high. If a movie has extremely high ratings, but there are only a few ratings, it would be considered a niche movie. Conversely, if a movie had a high number of ratings, but the ratings were low, I would argue that the movie would still be popular since there is a large amount of the population that is discussing the movie.
+
+To accomplish this, the aggregate() function was used to gather individual movies sorted by those with the highest number of ratings
+
+```{r}
+# Find the number of ratings for each movie
+rating_count <- aggregate(rating ~ movie_title, data = mlData, FUN = length)
+
+# Sort movies by number of ratings in descending order
+rating_counts_sorted <- rating_count[order(-rating_count$rating), ]
+
+# Create list of top 10 movies
+top_10_movies <- head(rating_counts_sorted, 10)
+print(top_10_movies)
+
+
+```
+I think that list makes sense. The original trilogy of Star Wars was extremely influential on American culture and remains so to this day. It makes sense that the most people know about and reviewed this movie.
+
+## Conjecture 1: Men are easier to please than women
+
+I will be considering the standard deviations of ratings between men and women. If the standard deviation of the 'men' data set is lower than the standard deviation of the 'women' data set, it would mean that men generally have the same opinions and have the same standards for being pleased. The standard deviation of these ratings reflects the variance or how spread out the ratings are within the opinions of men or women.
+
+To support this conjecture, the subsets for men and women will be used from the previous questions. From there, the standard deviations of these ratings will be compared and support for the conjecture can be established.
+
+```{r}
+# Calculating the standard deviation for men and women
+std_dev_M <- sd(mlData_M$rating, na.rm = TRUE)
+std_dev_W <- sd(mlData_W$rating, na.rm = TRUE)
+
+cat('Standard deviation in ratings for men:',std_dev_M,'\n')
+cat('Standard deviation in ratings for women:',std_dev_W,'\n')
+```
+As seen by the output, it is the case that the standard deviation for men is lower than that of women. This suggests that men are easier to please, as the variance in their ratings are lower compared to that of women.
+
+## Conjecture 2: Older viewers are more critical than young adults.
+
+This conjecture states that older viewers (aged 40-60) will on average give lower reviews than young adults (aged 18-25). With lower reviews it can be said that older viewers are less easy to please than their younger counterparts. To support this, two new subsets of data will be created that encompass the previously mentioned age groups. From there, the aggregate() function can be used to gather the mean rating for each movie. The average rating for all movies can be considered for each age group. If the average rating for the older age group is lower, then it can be determined that older viewers are more critical than their younger counterparts.
+
+```{r}
+# Create a subset for each age group
+younger <- subset(mlData , age >= 18 & age <= 25)
+older <- subset(mlData, 40 >= age & age <= 60)
+
+# Aggregate data for each age group
+average_ratings_y <- aggregate(rating ~ movie_title, data = younger, FUN = mean)
+average_ratings_o <- aggregate(rating ~ movie_title, data = older, FUN = mean)
+
+# Find the average score each age group gave
+average_young <- mean(average_ratings_y$rating, na.rm = TRUE)
+average_old <- mean(average_ratings_o$rating, na.rm = TRUE)
+
+cat('Average rating given by viewers aged 18-25 = ',average_young,'\n')
+cat('Average rating given by viewers aged 40-60 = ',average_old)
+
+
+```
+This data supports the conjecture previously made. The average rating for all movies given by viewers aged 18-25 is higher than those given by viewers 40-60. Therefore, it can be said that older viewers are more critical than their younger counterparts.
+
+# Problem 2: Expanding Investigation to Histograms
+
+## Plot a historgram of the ratings of all movies
+
+Using ggplot(), the frequency of score of each individual rating can be plotted as shown below.
+```{r}
+library(ggplot2)
+
+# Creating the histogram
+ggplot(mlData, aes(x = rating)) + 
+  geom_histogram(binwidth = 1, fill = "red", color = "blue", alpha = 0.5) +
+  labs(title = "Movie Ratings", x = "Rating", y = "Frequency of Rating Score") +
+  theme_classic()
+
+
+```
+## Plot a histogram of the number of ratings that each movie received
+
+```{r}
+library(dplyr)
+
+# Find the number of ratings each movie received.
+movie_rating_counts <- mlData %>%
+  group_by(movie_title) %>%
+  summarize(count = n())
+
+# Plotting the data
+ggplot(movie_rating_counts, aes(x = count))  + 
+  geom_histogram(binwidth = 25, fill = "red", color = "blue", alpha = 0.5) +
+  labs(title = "Number of Ratings per Movie", x = "Movie Title", y = "Number of Ratings") +
+  theme_classic()
+```
+Since there are many movies in this data set. Including each title on the X axis would not be feasible.
+
+## Plot a histogram of the average rating for each movie.
+```{r}
+ggplot(average_ratings, aes(x = rating)) + 
+  geom_histogram(binwidth = .05, fill = "blue", color = "purple") +
+  labs(title = "Average Rating for Each Movie", x = "Average Rating", y = "Movie Count")
+```
+## Plot a histogram of the average rating for movies which were rated over 100 times.
+
+As seen in the plot below there are distinct spikes in the data. I believe that these are representative of common scores assigned to movies. I believe that these represent scores that were given as whole numbers but they were skewed slightly in the over 100 ratings graph. The tails are much flatter in the over 100 graph, meaning that there was more data to smooth the curve out. I would trust the over 100 graph more since it is more representative of the populations opinions on the movie compared to the unfiltered graph from earlier.
+```{r}
+top_movies = as.data.frame(table(mlData$movie_title))
+top_movies = top_movies[order(-top_movies$Freq), ]
+top_over100 = merge(average_ratings, top_movies, by.x = "movie_title", by.y = "Var1")
+top_over100 = dplyr::filter(top_over100, Freq > 100)
+
+ggplot(top_over100, aes(x = rating)) +
+  geom_histogram(binwidth = 0.05, fill = "orange", color = "black") +
+  labs(title = "Movies with Over 100 Ratings", x = "Average Rating", y = "Movies")
+```
+
+## Conjecture 1: Older Movies will have more ratings than newer movies.
+As you can see below, movies in the first third of the dataset have more reviews than the newer ones. This supports my conjecture.
+```{r}
+# Conjecture 1: Distribution of number of ratings by release year
+movie_release_counts <- mlData %>%
+  group_by(release_date) %>%
+  summarize(count = n())
+
+
+# Plotting the number of ratings by release year
+ggplot(movie_release_counts, aes(x = release_date, y = count)) + 
+  geom_bar(stat = "identity", fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Number of Ratings by Release Year", x = "Release Year", y = "Number of Ratings") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+## Conjecture 2: Teens (13-17) will have similar scores to young adults (18-25).
+As seen in the plots below, the shape of the histograms are somewhat similar. Young adults are far more critical than teens when it comes to rating as there are more ones and twos where the teens have more fives. Both groups follow a similar trend of scoring on whole numbers with teens having less variance outside of the whole number scores. Overall, I think that the graphs are similar enough to support my conjecture.
+```{r}
+
+mlData_teens = dplyr::filter(mlData, mlData$age >= 13, mlData$age <= 17)
+mlData_ya = dplyr::filter(mlData, mlData$age >= 18, mlData$age <= 25)
+
+averages_teens = aggregate(rating ~ movie_title, data = mlData_teens, FUN = mean)
+averages_ya = aggregate(rating ~ movie_title, data = mlData_ya, FUN = mean)
+
+ggplot(averages_teens, aes(x = rating)) +
+  geom_histogram(binwidth = .1, fill = "orange", color = "black") +
+  labs(title = "Teen Ratings", x = "Average Rating", y = "Movies")
+
+ggplot(averages_ya, aes(x = rating)) +
+  geom_histogram(binwidth = .1, fill = "black", color = "orange") +
+  labs(title = "Young Adult Ratings", x = "Average Rating", y = "Movies")
+
+```
+
+# Problem 3: Correlation in Men vs Women
+
+## Make a scatter plot of men vs women and their mean rating for every movie.
+```{r}
+colnames(average_ratings_M)[2] = "M"
+colnames(average_ratings_W)[2] = "F"
+average_MW = merge(average_ratings_M, average_ratings_W, by = "movie_title")
+
+ggplot(average_MW, aes(x = M, y = F)) +
+geom_point(color = "red", alpha = 0.5) +
+labs(title = "Scatter Plot of Mean Ratings by Men vs Women", x = "Mean Rating (M)", y = "Mean Rating (W)")
+
+```
+
+## Make a scatter plot of men vs women and their mean rating for every movie.
+```{r}
+colnames(average_ratings_M)[2] = "M"
+colnames(average_ratings_W)[2] = "F"
+average_MW = merge(average_ratings_M, average_ratings_W, by = "movie_title")
+
+top_over200 = filter(top_over100, Freq > 200)
+average_MW_200 = merge(average_MW, top_over200, by = "movie_title")
+
+ggplot(average_MW, aes(x = M, y = F)) +
+geom_point(color = "red", alpha = 0.5) +
+labs(title = "Scatter Plot of Mean Ratings by Men vs Women of Movies with over 200 reviews", x = "Mean Rating (M)", y = "Mean Rating (W)")
+
+```
+
+## Compute the correlation coefficient between men and women. 
+```{r}
+co = cor(average_MW$M, average_MW$F)
+co_200 = cor(average_MW_200$M, average_MW_200$F)
+
+cat("Correlation between men and women = ",co,"\n")
+cat("Correlation between men and women for over 200 = ",co_200)
+
+```
+When considering the correlation between the ratings of men and women, a higher score would suggest that the two genders agree. With the group of movies with over 200 ratings there is a high correlation meaning that men and women would agree on the ratings assigned to each movie. I think that the small differences in their ratings can be attributed to personal preference of genre, and number of men and women in each data set.
+
+## Conjecture under what circumstances the rating given by one gender can be used to predict the rating given by the other gender.
+I conjecture that the older group of viewers 50+ will generally have a higher correlation of ratings than that of the younger teen group. Among teens, there is often a social pressure to conform to gender norms, so I believe that the ratings will be polarized by genre of movie, leading to a smaller correlation.
+```{r}
+teen_men = filter(mlData_M, age >= 13 & age<=17)
+teen_women = filter(mlData_W, age >= 13 & age<=17)
+
+old_men = filter(mlData_M, age >= 50)
+old_women = filter(mlData_W, age >= 50)
+
+teen_men_avg = aggregate(rating ~ movie_title, data = teen_men, FUN = mean)
+teen_women_avg = aggregate(rating ~ movie_title, data = teen_women, FUN = mean)
+
+old_men_avg = aggregate(rating ~ movie_title, data = old_men, FUN = mean)
+old_women_avg = aggregate(rating ~ movie_title, data = old_women, FUN = mean)
+
+colnames(teen_men_avg)[2] = "TM"
+colnames(teen_women_avg)[2] = "TW"
+
+colnames(old_men_avg)[2] = "OM"
+colnames(old_women_avg)[2] = "OW"
+
+teen_avg = merge(teen_men_avg, teen_women_avg, by = "movie_title")
+old_avg = merge(old_women_avg, old_men_avg, by = "movie_title")
+
+teen_co = cor(teen_avg$TM, teen_avg$TW)
+old_co = cor(old_avg$OM, old_avg$OW)
+
+cat("Correlation between men and women (teen) = ",teen_co)
+cat("Correlation between men and women (old) = ",old_co)
+
+```
+It is evident that the correlation between ratings of teen men and women compared to older men and women are different. The correlation between older men and women is higher, supporting my conjecture. This would be a circumstance where one could make predictions about the votes of men vs women.
+
+# Problem 4: Business Intelligence
+I think that the conjecture that analyses the difference in ratings between teens and young adults could be a useful piece of information for a business. It begs the question, at what point do the ratings between different age groups become drastically different? I would make the conjecture that the teens and kids age group (0-17 years) could be considered to be very similar while the young adult and older (18-35) would also be similar. To confirm this, I will create histograms for these two new age groups and consider how they differ from the teen and young adult graph.
+```{r}
+mlData_kids = dplyr::filter(mlData, mlData$age <= 12)
+mlData_2635 = dplyr::filter(mlData, mlData$age >= 26, mlData$age <= 35)
+
+averages_kids = aggregate(rating ~ movie_title, data = mlData_kids, FUN = mean)
+averages_2635 = aggregate(rating ~ movie_title, data = mlData_2635, FUN = mean)
+
+ggplot(averages_kids, aes(x = rating)) +
+  geom_histogram(binwidth = .1, fill = "green", color = "black") +
+  labs(title = "Kids Ratings", x = "Average Rating", y = "Movies")
+
+ggplot(averages_2635, aes(x = rating)) +
+  geom_histogram(binwidth = .1, fill = "pink", color = "orange") +
+  labs(title = "Aged 26-35 Ratings", x = "Average Rating", y = "Movies")
+```
+As seen in the charts, the kids and teens histograms are similar with the majority of rating votes being cast to only whole numbers. This indicated that kids and teens perceive movies very similarly. The distribution seen in the young adult and older young adult group are very similar as well. I believe that this is important information when it comes to marketing certain movies. For example, if there was a kid's movie in production, it would be safe to assume that you could market to both kids 0-12 years old as well as teens 13-17 years old since their perception of movies was shown to be about the same. A similar marketing strategy could me imposed on the older age group outlined above. Not only would the movie receive more recognition due to this marketing, but the marketing team would have confidence in how each age group would react, leading to more precise strategies. With this information, the company can successfully inform their marketing plan.
